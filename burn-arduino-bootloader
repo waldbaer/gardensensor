@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+# -- Config --
+programmer=usbasp
+board_name="arduino:avr:pro:cpu=8MHzatmega328"
+extra_options="-v"
+
+# -- Run --
+echo "== Burning bootloader..."
+arduino-cli burn-bootloader -b ${board_name} -P ${programmer} ${extra_options}
+echo "== Done =="
+
