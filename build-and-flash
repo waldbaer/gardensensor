@@ -2,18 +2,20 @@
 set -e
 
 # -- Config --
-programmer="/dev/ttyUSB0"
-#programmer="usbasp"
+programmer="-p /dev/ttyUSB0"
+#programmer="-P usbasp"
 board_name="arduino:avr:pro:cpu=8MHzatmega328"
 app_name=gardensensor
 
+libraries="./libraries"
+
 # -- Run --
 echo "== Compiling application ${app_name} for board ${board_name}..."
-arduino-cli compile -v --fqbn ${board_name} ${app_name}
+arduino-cli compile -v --libraries ${libraries} --fqbn ${board_name} ${app_name}
 echo "== Compile done."
 echo
 echo "== Flashing binary to board ${board_name}... "
-arduino-cli upload -p ${programmer} --fqbn ${board_name} ${app_name}
+arduino-cli upload -v ${programmer} --fqbn ${board_name} ${app_name}
 echo "== Flashing done."
 
 
