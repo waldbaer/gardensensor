@@ -37,7 +37,7 @@
 #define KNX_GA_CISTERN_WATER_PRESSURE_STATUS    "10/5/0"
 
 #define INITIAL_SETUP_DELAY                     1000 // ms
-#define MONITORING_CYCLE_TIME                   1000 // ms
+#define MONITORING_CYCLE_TIME                   3600 // sec
 
 
 // ---- Globals -----------------------------------------------------------------------------------
@@ -46,8 +46,6 @@ ADS1115 ADS(I2C_ADDRESS_ADC);
 #if(OUTPUT_TYPE == OUTPUT_TYPE_KNX)
 KnxTpUart knx(&Serial, KNX_PHYSICAL_ADDRESS);
 #endif
-
-boolean led_state{false};
 
 // ---- Setup -------------------------------------------------------------------------------------
 void setup()
@@ -89,9 +87,7 @@ void setup()
 void loop()
 {
   // toggle LED
-  digitalWrite(LED_BUILTIN, led_state);
-  led_state = !led_state;
-
+  digitalWrite(LED_BUILTIN, true);
 
   // Print ADC status via serial monitor
   #if(OUTPUT_TYPE == OUTPUT_TYPE_SERIAL)
@@ -103,11 +99,11 @@ void loop()
   SendAdcStatusKnx();
   #endif
 
+  digitalWrite(LED_BUILTIN, false);
 
-  delay(MONITORING_CYCLE_TIME);
 
   // Enter low-power mode
-  //EnterLowPowerMode();
+  LowPowerSleep(MONITORING_CYCLE_TIME);
 }
 
 // ---- Functions ---------------------------------------------------------------------------------
@@ -131,10 +127,10 @@ void setupAdc() {
 }
 
 void PrintAdcStatus(){
-  int16_t raw_channel0 = ADS.readADC(ADC_CHANNEL_CISTERN_WATER_PRESSURE);
-  int16_t raw_channel1 = ADS.readADC(ADC_CHANNEL_1);
-  int16_t raw_channel2 = ADS.readADC(ADC_CHANNEL_2);
-  int16_t raw_channel3 = ADS.readADC(ADC_CHANNEL_3);
+  int16_t raw_channel0{ADS.readADC(ADC_CHANNEL_CISTERN_WATER_PRESSURE)};
+  int16_t raw_channel1{ADS.readADC(ADC_CHANNEL_1)};
+  int16_t raw_channel2{ADS.readADC(ADC_CHANNEL_2)};
+  int16_t raw_channel3{ADS.readADC(ADC_CHANNEL_3)};
 
   Serial.print("Voltage monitoring: ");
   Serial.print(ADS.toVoltage(raw_channel0), 3);
@@ -159,6 +155,8 @@ void SendAdcStatusKnx() {
 }
 
 
-void EnterLowPowerMode() {
-  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+void LowPowerSleep(size_t delay) {
+  for(size_t sleep_8s{delay / 8}; sleep_8s > 0; sleep_8s--) {
+    LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  }
 }
