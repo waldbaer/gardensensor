@@ -12,7 +12,7 @@
 #include "KnxTpUart.h"
 
 // ---- Configuration -----------------------------------------------------------------------------
-#define GARDENSENSOR_SW_VERSION                 "0.0.1"
+#define GARDENSENSOR_SW_VERSION                 "0.1.0"
 
 #define OUTPUT_TYPE_SERIAL                      0
 #define OUTPUT_TYPE_KNX                         1
@@ -26,7 +26,7 @@
 #define ADC_GAIN                                1 // (max. voltage +-4.096V)
 #define ADC_MODE                                1 // singleshot
 #define ADC_DATARATE                            0 // 8 Samples/sec (default : 4 = 128 SPS)
-#define ADC_CHANNEL_CISTERN_WATER_PRESSURE      0x00
+#define ADC_CHANNEL_0                           0x00
 #define ADC_CHANNEL_1                           0x01
 #define ADC_CHANNEL_2                           0x02
 #define ADC_CHANNEL_3                           0x03
@@ -34,7 +34,10 @@
 #define KNX_SERIAL_BAUDRATE                     19200
 #define KNX_SERIAL_MODE                         SERIAL_8E1
 #define KNX_PHYSICAL_ADDRESS                    "1.1.220"
-#define KNX_GA_CISTERN_WATER_PRESSURE_STATUS    "10/5/0"
+#define KNX_GA_AD0                              "10/5/0"
+#define KNX_GA_AD1                              "10/5/1"
+#define KNX_GA_AD2                              "10/5/2"
+#define KNX_GA_AD3                              "10/5/3"
 
 #define INITIAL_SETUP_DELAY                     1000 // ms
 #define MONITORING_CYCLE_TIME                   3600 // sec
@@ -127,7 +130,7 @@ void setupAdc() {
 }
 
 void PrintAdcStatus(){
-  int16_t raw_channel0{ADS.readADC(ADC_CHANNEL_CISTERN_WATER_PRESSURE)};
+  int16_t raw_channel0{ADS.readADC(ADC_CHANNEL_0)};
   int16_t raw_channel1{ADS.readADC(ADC_CHANNEL_1)};
   int16_t raw_channel2{ADS.readADC(ADC_CHANNEL_2)};
   int16_t raw_channel3{ADS.readADC(ADC_CHANNEL_3)};
@@ -146,10 +149,24 @@ void PrintAdcStatus(){
 void SendAdcStatusKnx() {
   #if(OUTPUT_TYPE == OUTPUT_TYPE_KNX)
 
-  // Cistern water pressure status: Send current ADC value
-  int16_t raw_adc{ADS.readADC(ADC_CHANNEL_CISTERN_WATER_PRESSURE)};
-  float adc_voltage{ADS.toVoltage(raw_adc)};
-  knx.groupWrite4ByteFloat(KNX_GA_CISTERN_WATER_PRESSURE_STATUS, adc_voltage);
+  // Get current ADC values
+  int16_t raw_adc0{ADS.readADC(ADC_CHANNEL_0)};
+  float adc_voltage0{ADS.toVoltage(raw_adc0)};
+
+  int16_t raw_adc1{ADS.readADC(ADC_CHANNEL_1)};
+  float adc_voltage1{ADS.toVoltage(raw_adc1)};
+
+  int16_t raw_adc2{ADS.readADC(ADC_CHANNEL_2)};
+  float adc_voltage2{ADS.toVoltage(raw_adc2)};
+
+  int16_t raw_adc3{ADS.readADC(ADC_CHANNEL_3)};
+  float adc_voltage3{ADS.toVoltage(raw_adc3)};
+
+  // Transmit all ADC values via KNX
+  knx.groupWrite4ByteFloat(KNX_GA_AD0, adc_voltage0);
+  knx.groupWrite4ByteFloat(KNX_GA_AD1, adc_voltage1);
+  knx.groupWrite4ByteFloat(KNX_GA_AD2, adc_voltage2);
+  knx.groupWrite4ByteFloat(KNX_GA_AD3, adc_voltage3);
 
   #endif
 }
