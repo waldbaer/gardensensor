@@ -14,11 +14,15 @@
 // ---- Configuration -----------------------------------------------------------------------------
 #define GARDENSENSOR_SW_VERSION                 "0.1.0"
 
+// Board voltage (3.3V or 5V)
+#define BOARD_VOLTAGE_3_3V                      3.3
+#define BOARD_VOLTAGE_5V                        5.0
+#define BOARD_VOLTAGE                           BOARD_VOLTAGE_5V
+
+// Output type: serial / KNX
 #define OUTPUT_TYPE_SERIAL                      0
 #define OUTPUT_TYPE_KNX                         1
-
-// OUTPUT_TYPE: OUTPUT_TYPE_SERIAL or OUTPUT_TYPE_KNX
-#define OUTPUT_TYPE                             OUTPUT_TYPE_KNX
+#define OUTPUT_TYPE                             OUTPUT_TYPE_KNX // OUTPUT_TYPE_SERIAL or OUTPUT_TYPE_KNX
 
 #define SERIAL_MONITOR_BAUDRATE                 9600
 #define I2C_ADDRESS_ADC                         0x48
@@ -31,16 +35,21 @@
 #define ADC_CHANNEL_2                           0x02
 #define ADC_CHANNEL_3                           0x03
 
+#define ADC_INTERNAL_CHANNEL_0                  A0        // interal 10bit ADC (channel A0)
+#define ADC_INTERNAL_RESOLUTION                 1023      // 10bit resolution
+
 #define KNX_SERIAL_BAUDRATE                     19200
 #define KNX_SERIAL_MODE                         SERIAL_8E1
-#define KNX_PHYSICAL_ADDRESS                    "1.1.220"
-#define KNX_GA_AD0                              "10/5/0"
-#define KNX_GA_AD1                              "10/5/1"
-#define KNX_GA_AD2                              "10/5/2"
-#define KNX_GA_AD3                              "10/5/3"
+#define KNX_PHYSICAL_ADDRESS                    "1.1.211"
+#define KNX_GA_AD0                              "10/5/0"  // external 16 bit ADC (ADS1115 channel0)
+#define KNX_GA_AD1                              "10/5/1"  // external 16 bit ADC (ADS1115 channel1)
+#define KNX_GA_AD2                              "10/5/2"  // external 16 bit ADC (ADS1115 channel2)
+#define KNX_GA_AD3                              "10/5/3"  // external 16 bit ADC (ADS1115 channel3)
+#define KNX_GA_AD4                              "10/5/4"  // interal 10bit ADC (channel A0)
+
 
 #define INITIAL_SETUP_DELAY                     1000 // ms
-#define MONITORING_CYCLE_TIME                   3600 // sec
+#define MONITORING_CYCLE_TIME                   900 // sec
 
 
 // ---- Globals -----------------------------------------------------------------------------------
@@ -57,6 +66,7 @@ void setup()
 
   // I/O pins
   pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, false);
 
   // Serial
   #if(OUTPUT_TYPE == OUTPUT_TYPE_SERIAL)
@@ -68,6 +78,13 @@ void setup()
 
   // ADC
   setupAdc();
+
+  for(uint8_t blink_cnt{3}; blink_cnt > 0; blink_cnt--) {
+    digitalWrite(LED_BUILTIN, true);
+    delay(70);
+    digitalWrite(LED_BUILTIN, false);
+    delay(200);
+  }
 
   delay(INITIAL_SETUP_DELAY);
 
@@ -92,18 +109,10 @@ void loop()
   // toggle LED
   digitalWrite(LED_BUILTIN, true);
 
-  // Print ADC status via serial monitor
-  #if(OUTPUT_TYPE == OUTPUT_TYPE_SERIAL)
-  PrintAdcStatus();
-  #endif
-
-  // Send ADC via KNX telegrams
-  #if(OUTPUT_TYPE == OUTPUT_TYPE_KNX)
-  SendAdcStatusKnx();
-  #endif
+  // Read and send current ADC value
+  SendAdcValues();
 
   digitalWrite(LED_BUILTIN, false);
-
 
   // Enter low-power mode
   LowPowerSleep(MONITORING_CYCLE_TIME);
@@ -129,26 +138,7 @@ void setupAdc() {
   ADS.begin();
 }
 
-void PrintAdcStatus(){
-  int16_t raw_channel0{ADS.readADC(ADC_CHANNEL_0)};
-  int16_t raw_channel1{ADS.readADC(ADC_CHANNEL_1)};
-  int16_t raw_channel2{ADS.readADC(ADC_CHANNEL_2)};
-  int16_t raw_channel3{ADS.readADC(ADC_CHANNEL_3)};
-
-  Serial.print("Voltage monitoring: ");
-  Serial.print(ADS.toVoltage(raw_channel0), 3);
-  Serial.print(" | ");
-  Serial.print(ADS.toVoltage(raw_channel1), 3);
-  Serial.print(" | ");
-  Serial.print(ADS.toVoltage(raw_channel2), 3);
-  Serial.print(" | ");
-  Serial.print(ADS.toVoltage(raw_channel3), 3);
-  Serial.print("\n");
-}
-
-void SendAdcStatusKnx() {
-  #if(OUTPUT_TYPE == OUTPUT_TYPE_KNX)
-
+void SendAdcValues() {
   // Get current ADC values
   int16_t raw_adc0{ADS.readADC(ADC_CHANNEL_0)};
   float adc_voltage0{ADS.toVoltage(raw_adc0)};
@@ -162,12 +152,31 @@ void SendAdcStatusKnx() {
   int16_t raw_adc3{ADS.readADC(ADC_CHANNEL_3)};
   float adc_voltage3{ADS.toVoltage(raw_adc3)};
 
+  // read internal ADC (10bit)
+  int16_t const raw_adc4{analogRead(ADC_INTERNAL_CHANNEL_0)};
+  float adc_voltage4{raw_adc4 * (BOARD_VOLTAGE / (float)ADC_INTERNAL_RESOLUTION)};
+
+  // Print ADC status via serial monitor
+  #if(OUTPUT_TYPE == OUTPUT_TYPE_SERIAL)
+  Serial.print("Voltage monitoring: ");
+  Serial.print(adc_voltage0, 3);
+  Serial.print(" | ");
+  Serial.print(adc_voltage1, 3);
+  Serial.print(" | ");
+  Serial.print(adc_voltage2, 3);
+  Serial.print(" | ");
+  Serial.print(adc_voltage3, 3);
+  Serial.print(" | ");
+  Serial.print(adc_voltage4, 3);
+  Serial.print("\n");
+
+  #elif(OUTPUT_TYPE == OUTPUT_TYPE_KNX)
   // Transmit all ADC values via KNX
   knx.groupWrite4ByteFloat(KNX_GA_AD0, adc_voltage0);
   knx.groupWrite4ByteFloat(KNX_GA_AD1, adc_voltage1);
   knx.groupWrite4ByteFloat(KNX_GA_AD2, adc_voltage2);
   knx.groupWrite4ByteFloat(KNX_GA_AD3, adc_voltage3);
-
+  knx.groupWrite4ByteFloat(KNX_GA_AD4, adc_voltage4);
   #endif
 }
 
