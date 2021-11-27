@@ -1,3 +1,8 @@
+// ------------------------------------------------------------------------------------------------
+// KNX Garden Sensor
+// Copyright (2021) Sebastian Waldvogel, MIT license
+// ------------------------------------------------------------------------------------------------
+
 // ---- Includes ----------------------------------------------------------------------------------
 // Library for ADC ADS1115. https://github.com/RobTillaart/ADS1X15
 // Library name: ADS1X15
@@ -81,6 +86,7 @@ void setup()
   // ADC
   setupAdc();
 
+  // Notify finalization of initialization with LED blink
   for(uint8_t blink_cnt{3}; blink_cnt > 0; blink_cnt--) {
     digitalWrite(LED_BUILTIN, true);
     delay(70);
@@ -142,6 +148,7 @@ void setupAdc() {
 
 void SendAdcValues() {
   // Get current ADC values
+  // read external ADC (16bit resolution)
   int16_t raw_adc0{ADS.readADC(ADC_CHANNEL_0)};
   float adc_voltage0{ADS.toVoltage(raw_adc0)};
 
@@ -154,7 +161,7 @@ void SendAdcValues() {
   int16_t raw_adc3{ADS.readADC(ADC_CHANNEL_3)};
   float adc_voltage3{ADS.toVoltage(raw_adc3)};
 
-  // read internal ADC (10bit)
+  // read internal ADC (10bit resolution)
   int16_t const raw_adc4{analogRead(ADC_INTERNAL_CHANNEL_0)};
   float adc_voltage4{raw_adc4 * (BOARD_VOLTAGE / (float)ADC_INTERNAL_RESOLUTION)};
 
