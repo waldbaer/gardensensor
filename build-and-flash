@@ -7,7 +7,7 @@ programmer="-p /dev/ttyUSB0"
 board_name="arduino:avr:pro:cpu=8MHzatmega328"
 app_name=gardensensor
 
-libraries="./libraries"
+libraries="./libraries/KnxTpUart"
 
 # -- Run --
 echo "== Compiling application ${app_name} for board ${board_name}..."
