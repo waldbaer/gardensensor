@@ -49,7 +49,9 @@
 
 
 #define INITIAL_SETUP_DELAY                     1000 // ms
-#define MONITORING_CYCLE_TIME                   900 // sec
+// due to bad quality of watchdog (used for lower power sleep) the absolute time must be adapted according to hardware
+// correction factor: corrected_time=time*(560/646)
+#define MONITORING_CYCLE_TIME                   780 // ~15min
 
 
 // ---- Globals -----------------------------------------------------------------------------------
@@ -179,7 +181,6 @@ void SendAdcValues() {
   knx.groupWrite4ByteFloat(KNX_GA_AD4, adc_voltage4);
   #endif
 }
-
 
 void LowPowerSleep(size_t delay) {
   for(size_t sleep_8s{delay / 8}; sleep_8s > 0; sleep_8s--) {

@@ -4,6 +4,9 @@ set -e
 # -- Config --
 programmer="-p /dev/ttyUSB0"
 #programmer="-P usbasp"
+
+# Board versions
+# Don't forget to update board voltage too!
 # Arduino pro mini 3,3V 8MHz
 #board_name="arduino:avr:pro:cpu=8MHzatmega328"
 # Arduino pro mini 5V 16MHz
