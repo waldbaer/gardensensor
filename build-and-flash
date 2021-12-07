@@ -2,26 +2,33 @@
 set -e
 
 # -- Config --
-programmer="-p /dev/ttyUSB0"
-#programmer="-P usbasp"
-
-# Board versions
-# Don't forget to update board voltage too!
-# Arduino pro mini 3,3V 8MHz
-#board_name="arduino:avr:pro:cpu=8MHzatmega328"
-# Arduino pro mini 5V 16MHz
-board_name="arduino:avr:pro:cpu=16MHzatmega328"
-
+board_variant="3_3V"            # "3_3V" or "5V"
+programmer="-p /dev/ttyUSB0"    # alt. "-P usbasp"
 app_name=gardensensor
 
 libraries="./libraries/KnxTpUart"
 
 # -- Run --
-echo "== Compiling application ${app_name} for board ${board_name}..."
-arduino-cli compile -v --libraries ${libraries} --fqbn ${board_name} ${app_name}
-echo "== Compile done."
+if [ "${board_variant}" = "3_3V" ]; then
+  # Arduino pro mini 3,3V 8MHz
+  board_name="arduino:avr:pro:cpu=8MHzatmega328"
+elif [ "${board_variant}" = "5V" ]; then
+  # Arduino pro mini 5V 16MHz
+  board_name="arduino:avr:pro:cpu=16MHzatmega328"
+else
+  echo "Error: Unknown board variant selected: ${board_variant}"
+  exit 1
+fi
+
+echo "== Compiling application ${app_name} for board ${board_name} / variant ${board_variant}..."
+arduino-cli compile -v \
+    --libraries ${libraries} \
+    --fqbn ${board_name} \
+    --build-property build.extra_flags=-DBOARD_VOLTAGE=VOLTAGE_${board_variant} \
+    ${app_name}
+echo "== Compilation done."
 echo
-echo "== Flashing binary to board ${board_name}... "
+echo "== Flashing binary to board ${board_name}..."
 arduino-cli upload -v ${programmer} --fqbn ${board_name} ${app_name}
 echo "== Flashing done."
 

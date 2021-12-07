@@ -19,10 +19,16 @@
 // ---- Configuration -----------------------------------------------------------------------------
 #define GARDENSENSOR_SW_VERSION                 "0.1.0"
 
-// Board voltage (3.3V or 5V)
-#define BOARD_VOLTAGE_3_3V                      3.3
-#define BOARD_VOLTAGE_5V                        5.0
-#define BOARD_VOLTAGE                           BOARD_VOLTAGE_5V
+// Board voltage
+#define VOLTAGE_3_3V                            (3300)
+#define VOLTAGE_5V                              (5000)
+#ifndef BOARD_VOLTAGE
+  #error Board voltage is not defined. Please configure it via make environment!
+#endif
+// BOARD_VOLTAGE must be configured via make environment
+#if ((BOARD_VOLTAGE != VOLTAGE_3_3V) && (BOARD_VOLTAGE != VOLTAGE_5V))
+  #error "Unsupport board voltage configured!"
+#endif
 
 // Output type: serial / KNX
 #define OUTPUT_TYPE_SERIAL                      0
@@ -105,6 +111,10 @@ void setup()
 
   Serial.print("= ADS1X15 version:      ");
   Serial.println(ADS1X15_LIB_VERSION);
+  Serial.print("= Board voltage:        ");
+  Serial.print((float)(BOARD_VOLTAGE) / 1000.0);
+  Serial.println("V");
+
   Serial.println("== setup done ================");
   Serial.println("");
   #endif
@@ -163,7 +173,7 @@ void SendAdcValues() {
 
   // read internal ADC (10bit resolution)
   int16_t const raw_adc4{analogRead(ADC_INTERNAL_CHANNEL_0)};
-  float adc_voltage4{raw_adc4 * (BOARD_VOLTAGE / (float)ADC_INTERNAL_RESOLUTION)};
+  float adc_voltage4{raw_adc4 * (((float)BOARD_VOLTAGE / 1000.0) / (float)ADC_INTERNAL_RESOLUTION)};
 
   // Print ADC status via serial monitor
   #if(OUTPUT_TYPE == OUTPUT_TYPE_SERIAL)
